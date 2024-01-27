@@ -64,7 +64,7 @@ class TestQueryInterrupt(object):
 
     def assert_interrupts(self, query_name, query, test_data):
         """
-        Interrupt a subprocess after a second.
+        Interrupt a query after a delay and check response time
         """
 
         # Some tests can overwrite SIGINT handler (by using pdb for example),
@@ -100,13 +100,13 @@ class TestQueryInterrupt(object):
     
     def test_system_interrupt(self):
         """
-        When interrupted in the way ipykernel interrupts IPython, the
-        subprocess is interrupted.
+        Test that queries promptly respond to keyboard interrupts
         """
         self.configure_duckdb()
         large_test_data = large_test_data_gen()
+        self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
         self.assert_interrupts("long_running_query", long_running_query, large_test_data)
-        # self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
+        
 
         """
         # Profile code
