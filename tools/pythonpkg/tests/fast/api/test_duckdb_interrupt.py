@@ -4,37 +4,6 @@
 # Adapt interrupt test from ipython as shown here:
 # https://github.com/itamarst/ipython/blob/561d08809d08a4473e5a085392678544888fdb61/IPython/utils/tests/test_process.py
 
-import os
-import site
-
-
-def print_virtual_environment_config():
-    """Prints the configuration of the current virtual environment."""
-
-    # Get the path to the virtual environment.
-    virtual_env_path = os.environ.get("VIRTUAL_ENV")
-
-    # If the virtual environment path is not set, then we are not in a virtual environment.
-    if not virtual_env_path:
-        print("Not in a virtual environment.")
-        return
-
-    # Get the name of the virtual environment.
-    virtual_env_name = os.path.basename(virtual_env_path)
-
-    # Get the Python interpreter that is used by the virtual environment.
-    python_interpreter_path = os.path.join(virtual_env_path, "bin", "python")
-
-    # Get the site packages directory that is used by the virtual environment.
-    site_packages_path = site.getsitepackages()
-
-    # Print the configuration of the virtual environment.
-    print("Virtual environment name:", virtual_env_name)
-    print("Python interpreter path:", python_interpreter_path)
-    print("Site packages directory:", site_packages_path)
-
-print_virtual_environment_config()
-
 import pytest
 import duckdb
 import pandas as pd
@@ -162,4 +131,4 @@ def run_test():
     print("Tests complete!")
 
 
-run_test()
+# run_test()
