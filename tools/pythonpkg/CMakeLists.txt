@@ -2,9 +2,8 @@
 # Extra definitions for standalone compilation
 cmake_minimum_required(VERSION 3.5)
 project(DuckDB_python)
-set(pybind11_DIR /home/cjoy/src/duckdb/.venv/lib64/python3.10/site-packages/pybind11/share/cmake/pybind11)
+set(pybind11_DIR //home/cjoy/src/duckdb/.venv/lib/python3.10/site-packages/pybind11/share/cmake/pybind11)
 link_directories(../../build/debug/src)
-
 
 include_directories(src)
 include_directories(../../)
@@ -17,7 +16,6 @@ find_package(PythonLibs)
 if(NOT PythonLibs_FOUND)
   return()
 endif()
-
 
 find_package(pybind11)
 if(NOT pybind11_FOUND)

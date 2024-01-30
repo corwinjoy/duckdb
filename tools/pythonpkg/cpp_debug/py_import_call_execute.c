@@ -69,21 +69,35 @@ int import_call_execute(int argc, const char *argv[]) {
     goto except;
   }
 
+  Py_SetProgramName((wchar_t*)argv[0]);
+
   if (venv_path) {
-    setenv("PYTHONHOME", "", 1);
-    //strcpy(pythonpath, venv_path);
-    //strcat(pythonpath, "/lib/python3.10/site-packages");
-    //setenv("PYTHONPATH", pythonpath, 1);
-    // set "PYTHONPATH=%VIRTUAL_ENV%\Lib\site-packages"
-    // /home/cjoy/src/duckdb/.venv/lib/python3.10/site-packages
+    // We need to set the executable path in order to load the python virtualenv config
+    PyConfig config;
+    PyConfig_InitIsolatedConfig(&config);
+    strcpy(pythonpath, venv_path);
+    strcat(pythonpath, "/bin/python");
+
+    wchar_t wide_pythonpath[1000];
+    mbstowcs(wide_pythonpath, pythonpath, sizeof(wide_pythonpath));
+
+    PyConfig_SetString(&config, &config.executable, wide_pythonpath);
+
+    PyStatus status = Py_InitializeFromConfig(&config);
+    PyConfig_Clear(&config);
+
+    if (PyStatus_Exception(status)) {
+      Py_ExitStatusException(status);
+    }
+  } else {
+    Py_Initialize();
   }
 
-  Py_SetProgramName((wchar_t*)argv[0]);
-  Py_Initialize();
   if (add_path_to_sys_module(argv[1])) {
     return_value = -2;
     goto except;
   }
+
   pModule = PyImport_ImportModule(argv[2]);
   if (! pModule) {
     fprintf(stderr,
