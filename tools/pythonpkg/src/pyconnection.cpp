@@ -1258,6 +1258,7 @@ py::list DuckDBPyConnection::FetchMany(idx_t size) {
 }
 
 py::list DuckDBPyConnection::FetchAll() {
+	__builtin_trap();
 	if (!result) {
 		throw InvalidInputException("No open result set");
 	}
