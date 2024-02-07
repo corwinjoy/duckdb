@@ -1,0 +1,4 @@
+#!/bin/bash
+source /home/cjoy/anaconda3/bin/activate base
+/home/cjoy/anaconda3/bin/cmake "$@"                       # don't forget to forward the passed parameters
+

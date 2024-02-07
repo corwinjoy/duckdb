@@ -240,9 +240,10 @@ def exclude_extensions(f: TextIO):
     else:
         return [x for x in files if 'jemalloc' not in x]
 
-
+print(f"existing_duckdb_dir: {existing_duckdb_dir}")
 if len(existing_duckdb_dir) == 0:
     # no existing library supplied: compile everything from source
+    print("no lib supplied")
     source_files = main_source_files
 
     # check if amalgamation exists
@@ -304,6 +305,7 @@ if len(existing_duckdb_dir) == 0:
         define_macros=define_macros,
     )
 else:
+    print("looking for existing duckdb libs")
     sys.path.append(os.path.join(script_path, '..', '..', 'scripts'))
     import package_build
 
@@ -313,6 +315,9 @@ else:
     result_libraries = package_build.get_libraries(existing_duckdb_dir, libraries, extensions)
     library_dirs = [x[0] for x in result_libraries if x[0] is not None]
     libnames = [x[1] for x in result_libraries if x[1] is not None]
+
+    print(f"libnames: {libnames}")
+    print(f"library_dirs: {library_dirs}")
 
     libduckdb = Extension(
         lib_name + '.duckdb',

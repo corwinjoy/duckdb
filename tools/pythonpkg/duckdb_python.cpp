@@ -39,6 +39,7 @@ enum PySQLTokenType {
 };
 
 static py::list PyTokenize(const string &query) {
+  int i = 1;
 	auto tokens = Parser::Tokenize(query);
 	py::list result;
 	for (auto &token : tokens) {

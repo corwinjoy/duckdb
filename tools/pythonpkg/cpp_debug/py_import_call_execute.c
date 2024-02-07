@@ -6,6 +6,15 @@
 extern "C" {
 #endif
 
+void print_env() {
+  extern char **environ;
+  char **env = environ;
+  while (*env != NULL) {
+    printf("%s\n", *env);
+    env++;
+  }
+}
+
 /** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.
  * This does rather laborious C string concatenation so that it will work in
  * a primitive C environment.
@@ -59,7 +68,10 @@ int import_call_execute(int argc, const char *argv[]) {
   PyObject *pFunc     = NULL;
   PyObject *pResult   = NULL;
   char* venv_path = getenv("VIRTUAL_ENV");
+  char* path = getenv("PATH");
   char pythonpath[1000];
+
+  // print_env();
 
   if (argc != 4) {
     fprintf(stderr,
@@ -73,6 +85,8 @@ int import_call_execute(int argc, const char *argv[]) {
 
   if (venv_path) {
     // We need to set the executable path in order to load the python virtualenv config
+    // Note that this is not completely isolated. 
+    // The python environment that is set when this file is compiled will become the base python
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
     strcpy(pythonpath, venv_path);
@@ -130,7 +144,7 @@ int import_call_execute(int argc, const char *argv[]) {
   assert(! PyErr_Occurred());
   goto finally;
   except:
-  assert(PyErr_Occurred());
+  // assert(PyErr_Occurred());
   PyErr_Print();
   finally:
   Py_XDECREF(pFunc);

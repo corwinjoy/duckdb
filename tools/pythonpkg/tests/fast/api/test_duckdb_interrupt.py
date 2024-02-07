@@ -4,7 +4,18 @@
 # Adapt interrupt test from ipython as shown here:
 # https://github.com/itamarst/ipython/blob/561d08809d08a4473e5a085392678544888fdb61/IPython/utils/tests/test_process.py
 
-import pytest
+def print_config():
+    import sys
+    print("Python version:")
+    print(sys.version)
+    print("Python paths:")
+    for p in sys.path:
+        print(p)
+
+print_config()
+print("loading libraries")
+
+# import pytest
 import duckdb
 import pandas as pd
 import numpy as np
@@ -13,35 +24,37 @@ import time
 from _thread import interrupt_main  # Py 3
 import threading
 
+print("loading libraries complete")
+
+
+
 def large_test_data_gen():
+    print("generating test data")
     n = 1_000_000
     columns = 100
     df = pd.DataFrame({f'col{i}': 1000 * np.random.sample(n) for i in range(columns)})
+    print("test data generation complete")
     return df
 
-def long_running_query(df):
-    qry = duckdb.sql("""
+def long_running_query():
+    return """
     SELECT 
     DISTINCT ON (floor(col0))
     *
     FROM df
     ORDER by col0 DESC
     LIMIT 5                 
-    """)
-    res = qry.fetchall()
-    return res
+    """
 
-def limited_column_query(df):
-    qry = duckdb.sql("""
+def limited_column_query():
+    return """
     SELECT 
     DISTINCT ON (floor(col0))
     col0, col1, col2
     FROM df
     ORDER by col0 DESC
     LIMIT 5                 
-    """)
-    res = qry.fetchall()
-    return res
+    """
 
 
 class TestQueryInterrupt(object):
@@ -49,10 +62,10 @@ class TestQueryInterrupt(object):
         # Configure memory and threads for test
         duckdb.execute(
             """
-            -- set the memory limit of the system to 10GB
-            SET memory_limit = '500GB';
-            -- configure the system to use 16 threads
-            SET threads TO 16;
+            -- set the memory limit of the system 
+            SET memory_limit = '5000GB';
+            -- configure the system to use x threads
+            SET threads TO 1;
             -- enable printing of a progress bar during long-running queries
             SET enable_progress_bar = true;
             -- temp dir
@@ -77,12 +90,19 @@ class TestQueryInterrupt(object):
             time.sleep(interrupt_delay)
             interrupt_main(signal.SIGINT)
 
-
+        print(f"testing {query_name}")
         result = None
-        # threading.Thread(target=interrupt).start()
+        print("preparing query")
+        qry = query()
+        df = test_data
+        stmt = duckdb.sql(qry)
+        print("query run")
+        threading.Thread().start()
         start = time.time()
         try:
-            result = query(test_data)
+            print("fetching results")
+            result = stmt.fetchall()
+            print("results fetched")
         except RuntimeError as err:
             # Success!
             assert err.args[0] == 'Query interrupted'
@@ -95,6 +115,7 @@ class TestQueryInterrupt(object):
             except KeyboardInterrupt:
                 pass
         elapsed = end - start - interrupt_delay
+        print("elapsed time: " + str(elapsed))
         # assert elapsed < 2, query_name + "Query didn't respond to interrupt fast enough. Took %s seconds to respond." % (end - start)
     
     def test_system_interrupt(self):
@@ -104,7 +125,7 @@ class TestQueryInterrupt(object):
         self.configure_duckdb()
         large_test_data = large_test_data_gen()
         self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
-        # self.assert_interrupts("long_running_query", long_running_query, large_test_data)
+        self.assert_interrupts("long_running_query", long_running_query, large_test_data)
         
 
         """
@@ -131,4 +152,4 @@ def run_test():
     print("Tests complete!")
 
 
-# run_test()
+run_test()
