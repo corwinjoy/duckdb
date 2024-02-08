@@ -63,11 +63,11 @@ class TestQueryInterrupt(object):
         duckdb.execute(
             """
             -- set the memory limit of the system 
-            SET memory_limit = '5000GB';
+            SET memory_limit = '200GB';
             -- configure the system to use x threads
             SET threads TO 16;
             -- enable printing of a progress bar during long-running queries
-            SET enable_progress_bar = true;
+            SET enable_progress_bar = false;
             -- temp dir
             SET temp_directory='.tmp';
             """
@@ -83,7 +83,7 @@ class TestQueryInterrupt(object):
         # which then breaks this test, so just make sure it's operating
         # normally.
         signal.signal(signal.SIGINT, signal.default_int_handler)
-        interrupt_delay = 2
+        interrupt_delay = 3
 
         def interrupt():
             # Wait for query to start:
@@ -93,17 +93,13 @@ class TestQueryInterrupt(object):
 
         print(f"testing {query_name}")
         result = None
-        print("preparing query")
         qry = query()
         df = test_data
         stmt = duckdb.sql(qry)
-        print("query run")
         threading.Thread(target=interrupt).start()
         start = time.time()
         try:
-            print("fetching results")
             result = stmt.fetchall()
-            print("results fetched")
         except RuntimeError as err:
             # Success!
             assert err.args[0] == 'Query interrupted'
@@ -118,7 +114,10 @@ class TestQueryInterrupt(object):
                 pass
         elapsed = end - start - interrupt_delay
         print("elapsed time: " + str(elapsed))
-        # assert elapsed < 2, query_name + "Query didn't respond to interrupt fast enough. Took %s seconds to respond." % (end - start)
+
+        # Elapsed time is not entirely predictable, there may still be significant C++ unwind time
+        # when returning from exception
+        assert elapsed < 15, query_name + "Query didn't respond to interrupt fast enough. Took %s seconds to respond." % (end - start)
         print("\n")
     
     def test_system_interrupt(self):
@@ -130,25 +129,8 @@ class TestQueryInterrupt(object):
         print("Done with configuration")
         large_test_data = large_test_data_gen()
         print("\n")
-        # self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
+        self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
         self.assert_interrupts("long_running_query", long_running_query, large_test_data)
-        
-
-        """
-        # Profile code
-        # Not much info since work happens in C
-
-        import cProfile, pstats, io
-        from pstats import SortKey
-        with cProfile.Profile() as pr:
-            # self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
-            self.assert_interrupts("long_running_query", long_running_query, large_test_data)
-            s = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            print(s.getvalue())
-        """
         
 
 def run_test():

@@ -380,18 +380,28 @@ shared_ptr<DuckDBPyConnection> DuckDBPyConnection::ExecuteMany(const string &que
 	return shared_from_this();
 }
 
-void CompletePendingQueryTask(PendingQueryResult *pending_query) {
-	PendingExecutionResult execution_result;
-	do {
-		execution_result = pending_query->ExecuteTask();
-	} while (!PendingQueryResult::IsFinished(execution_result));
-	if (execution_result == PendingExecutionResult::EXECUTION_ERROR) {
-		pending_query->ThrowError();
-	}
-}
+
+/*
+Note: In the function below, we execute the actual query in a subthread while we check for signals from python.
+The reason for doing this is that some interactive environments, like Jupyter notebook, have strict
+timeout criteria for heartbeat and interrupt signals or else they declare a kernel as dead.
+So, we need to make sure that PyErr_CheckSignals is called at regular intervals.
+*/
 
 unique_ptr<QueryResult> DuckDBPyConnection::CompletePendingQuery(PendingQueryResult &pending_query) {
-	std::future<void> future = std::async(std::launch::async, CompletePendingQueryTask, &pending_query);
+	std::future<void> future = std::async(
+		std::launch::async, 
+		[](PendingQueryResult *pending_query){
+			PendingExecutionResult execution_result;
+			do {
+				execution_result = pending_query->ExecuteTask();
+			} while (!PendingQueryResult::IsFinished(execution_result));
+			if (execution_result == PendingExecutionResult::EXECUTION_ERROR) {
+				pending_query->ThrowError();
+			}
+		}, 
+		&pending_query);
+
     std::future_status status;
     do
     {
@@ -404,7 +414,7 @@ unique_ptr<QueryResult> DuckDBPyConnection::CompletePendingQuery(PendingQueryRes
 		}   
     }
     while (status != std::future_status::ready);
-	future.get();
+
 	return pending_query.Execute();
 }
 
