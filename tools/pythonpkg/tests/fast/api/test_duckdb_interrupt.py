@@ -42,8 +42,7 @@ def long_running_query():
     DISTINCT ON (floor(col0))
     *
     FROM df
-    ORDER by col0 DESC
-    LIMIT 5                 
+    ORDER by col0 DESC                 
     """
 
 def limited_column_query():
@@ -52,8 +51,7 @@ def limited_column_query():
     DISTINCT ON (floor(col0))
     col0, col1, col2
     FROM df
-    ORDER by col0 DESC
-    LIMIT 5                 
+    ORDER by col0 DESC             
     """
 
 
