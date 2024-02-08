@@ -83,12 +83,13 @@ class TestQueryInterrupt(object):
         # which then breaks this test, so just make sure it's operating
         # normally.
         signal.signal(signal.SIGINT, signal.default_int_handler)
-        interrupt_delay = 2
+        interrupt_delay = 10
 
         def interrupt():
             # Wait for query to start:
             time.sleep(interrupt_delay)
-            interrupt_main(signal.SIGINT)
+            print("Sending interrupt")
+            interrupt_main()
 
         print(f"testing {query_name}")
         result = None
@@ -97,7 +98,7 @@ class TestQueryInterrupt(object):
         df = test_data
         stmt = duckdb.sql(qry)
         print("query run")
-        threading.Thread().start()
+        threading.Thread(target=interrupt).start()
         start = time.time()
         try:
             print("fetching results")
@@ -106,6 +107,7 @@ class TestQueryInterrupt(object):
         except RuntimeError as err:
             # Success!
             assert err.args[0] == 'Query interrupted'
+            print("Successful interrupt with error")
         end = time.time()
 
         # In case query finished before interrupt, wait for interrupt
@@ -117,13 +119,17 @@ class TestQueryInterrupt(object):
         elapsed = end - start - interrupt_delay
         print("elapsed time: " + str(elapsed))
         # assert elapsed < 2, query_name + "Query didn't respond to interrupt fast enough. Took %s seconds to respond." % (end - start)
+        print("\n")
     
     def test_system_interrupt(self):
         """
         Test that queries promptly respond to keyboard interrupts
         """
+        print("Configuring DB")
         self.configure_duckdb()
+        print("Done with configuration")
         large_test_data = large_test_data_gen()
+        print("\n")
         self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
         self.assert_interrupts("long_running_query", long_running_query, large_test_data)
         

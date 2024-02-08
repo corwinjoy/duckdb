@@ -75,16 +75,6 @@ unique_ptr<DataChunk> DuckDBPyResult::FetchNextRaw(QueryResult &query_result) {
 }
 
 Optional<py::tuple> DuckDBPyResult::Fetchone() {
-
-	// are we the main thread?
-	// threading.current_thread() == threading.main_thread()
-    /*
-	py::object thd = py::module_::import("threading");
-	py::object current_thread = thd.attr("current_thread")();
-	py::object main_thread = thd.attr("main_thread")();
-	bool is_main_thread = (current_thread == main_thread);
-	*/
-
 	{
 		py::gil_scoped_release release;
 		if (!result) {
@@ -103,22 +93,18 @@ Optional<py::tuple> DuckDBPyResult::Fetchone() {
 
 	int interrupt_interval = 10;
 	for (idx_t col_idx = 0; col_idx < result->types.size(); col_idx++) {
+		if (col_idx % interrupt_interval == 0 && PyErr_CheckSignals() != 0) {
+				throw std::runtime_error("Query interrupted");
+		}
 		auto &mask = FlatVector::Validity(current_chunk->data[col_idx]);
 		if (!mask.RowIsValid(chunk_offset)) {
 			res[col_idx] = py::none();
 			continue;
 		}
 		auto val = current_chunk->data[col_idx].GetValue(chunk_offset);
-		{
-			py::gil_scoped_acquire gil;
-			if (PyErr_CheckSignals() != 0) {
-					throw InvalidInputException("Query interrupted");
-			}
-		}
-		// Test idea that FromValue is eating signal
-		// res[col_idx] = PythonObject::FromValue(val, result->types[col_idx], result->client_properties);
+		res[col_idx] = PythonObject::FromValue(val, result->types[col_idx], result->client_properties);
 	}
-	chunk_offset++;
+	// chunk_offset++;
 	return res;
 }
 

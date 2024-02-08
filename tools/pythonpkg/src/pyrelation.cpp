@@ -788,12 +788,6 @@ py::list DuckDBPyRelation::FetchMany(idx_t size) {
 }
 
 py::list DuckDBPyRelation::FetchAll() {
-	// signal.signal(signal.SIGINT, signal.default_int_handler)
-	py::object signal = py::module_::import("signal");
-	py::object sigint = signal.attr("SIGINT");
-	py::object sig_default = signal.attr("default_int_handler");
-	signal.attr("signal")(sigint, sig_default);
-	
 	if (!result) {
 		if (!rel) {
 			return py::list();
