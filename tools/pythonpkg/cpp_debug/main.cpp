@@ -13,12 +13,12 @@
 * argv - Expected to be 4 strings:
 *      - Name of the executable.
 *      - Path to the directory that the Python module is in.
-*      - Name of the Python module.
+*      - Name of the Python module (without the file extension).
 *      - Name of the function in the module.
 */
 
 /* example:
- /home/cjoy/src/duckdb/tools/pythonpkg/tests/fast/api test_duckdb_interrupt.py run_test
+ /home/cjoy/src/duckdb/tools/pythonpkg/tests/fast/api test_duckdb_interrupt run_test
 */
 
 int main(int argc, const char *argv[]) {

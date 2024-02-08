@@ -53,6 +53,7 @@
 #include <random>
 
 #include "duckdb/common/printer.hpp"
+#include <future>
 
 namespace duckdb {
 
@@ -379,20 +380,31 @@ shared_ptr<DuckDBPyConnection> DuckDBPyConnection::ExecuteMany(const string &que
 	return shared_from_this();
 }
 
-unique_ptr<QueryResult> DuckDBPyConnection::CompletePendingQuery(PendingQueryResult &pending_query) {
+void CompletePendingQueryTask(PendingQueryResult *pending_query) {
 	PendingExecutionResult execution_result;
 	do {
-		execution_result = pending_query.ExecuteTask();
+		execution_result = pending_query->ExecuteTask();
+	} while (!PendingQueryResult::IsFinished(execution_result));
+	if (execution_result == PendingExecutionResult::EXECUTION_ERROR) {
+		pending_query->ThrowError();
+	}
+}
+
+unique_ptr<QueryResult> DuckDBPyConnection::CompletePendingQuery(PendingQueryResult &pending_query) {
+	std::future<void> future = std::async(std::launch::async, CompletePendingQueryTask, &pending_query);
+    std::future_status status;
+    do
+    {
+		status = future.wait_for(std::chrono::milliseconds(100));
 		{
 			py::gil_scoped_acquire gil;
 			if (PyErr_CheckSignals() != 0) {
 				throw std::runtime_error("Query interrupted");
 			}
-		}
-	} while (!PendingQueryResult::IsFinished(execution_result));
-	if (execution_result == PendingExecutionResult::EXECUTION_ERROR) {
-		pending_query.ThrowError();
-	}
+		}   
+    }
+    while (status != std::future_status::ready);
+	future.get();
 	return pending_query.Execute();
 }
 

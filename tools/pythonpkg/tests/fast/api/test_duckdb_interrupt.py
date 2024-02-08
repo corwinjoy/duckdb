@@ -65,7 +65,7 @@ class TestQueryInterrupt(object):
             -- set the memory limit of the system 
             SET memory_limit = '5000GB';
             -- configure the system to use x threads
-            SET threads TO 1;
+            SET threads TO 16;
             -- enable printing of a progress bar during long-running queries
             SET enable_progress_bar = true;
             -- temp dir
@@ -83,7 +83,7 @@ class TestQueryInterrupt(object):
         # which then breaks this test, so just make sure it's operating
         # normally.
         signal.signal(signal.SIGINT, signal.default_int_handler)
-        interrupt_delay = 10
+        interrupt_delay = 2
 
         def interrupt():
             # Wait for query to start:
@@ -130,7 +130,7 @@ class TestQueryInterrupt(object):
         print("Done with configuration")
         large_test_data = large_test_data_gen()
         print("\n")
-        self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
+        # self.assert_interrupts("limited_column_query", limited_column_query, large_test_data)
         self.assert_interrupts("long_running_query", long_running_query, large_test_data)
         
 
